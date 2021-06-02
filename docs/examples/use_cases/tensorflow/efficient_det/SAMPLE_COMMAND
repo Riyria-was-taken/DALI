@@ -1,0 +1,4 @@
+sudo ./run_docker.py --coco_eval_dataset train2017 --cmd '--pipeline dali_gpu --train_batch_size 4 --eval_batch_size 4 --epochs 1 --output /data/out_weights_1.h5 --eval_steps 50'
+
+sudo ./create_indexes_docker.py --coco /home/pkowalewski/COCO 
+

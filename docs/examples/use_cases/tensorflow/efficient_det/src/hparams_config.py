@@ -194,10 +194,10 @@ def default_detection_configs():
 
     # dataset specific parameters
     # TODO(tanmingxing): update this to be 91 for COCO, and 21 for pascal.
-    h.num_classes = 90  # 1+ actual classes, 0 is reserved for background.
+    h.num_classes = 21  # 1+ actual classes, 0 is reserved for background.
 
     h.skip_crowd_during_training = True
-    h.label_map = None  # a dict or a string of 'coco', 'voc', 'waymo'.
+    h.label_map = "voc"  # a dict or a string of 'coco', 'voc', 'waymo'.
     h.max_instances_per_image = 100  # Default to 100 for COCO.
 
     # model architecture
@@ -234,10 +234,7 @@ def default_detection_configs():
 
     # regularization l2 loss.
     h.weight_decay = 4e-5
-    h.strategy = None  # 'tpu', 'gpus', None
-    h.mixed_precision = False  # If False, use float32.
     h.loss_scale = None  # set to 2**16 enables dynamic loss scale
-    h.model_optimizations = {}  # 'prune':{}
 
     # For detection.
     h.box_class_repeats = 3
@@ -255,7 +252,6 @@ def default_detection_configs():
         "iou_thresh": None,  # use the default value based on method.
         "score_thresh": 0.0,
         "sigma": None,
-        "pyfunc": False,
         "max_nms_inputs": 0,
         "max_output_size": 100,
     }

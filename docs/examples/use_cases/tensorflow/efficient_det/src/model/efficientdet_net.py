@@ -24,8 +24,6 @@ from .backbone import backbone_factory
 from .backbone import efficientnet_builder
 from .model_utils import fpn_configs
 from .model_utils import postprocess
-from .model_utils import tfmot
-from .model_utils import util_keras
 
 # pylint: disable=arguments-differ  # fo keras layers.
 
@@ -43,10 +41,8 @@ class FNode(tf.keras.layers.Layer):
         conv_bn_act_pattern,
         separable_conv,
         act_type,
-        strategy,
         weight_method,
         data_format,
-        model_optimizations,
         name="fnode",
     ):
         super().__init__(name=name)
@@ -57,13 +53,11 @@ class FNode(tf.keras.layers.Layer):
         self.separable_conv = separable_conv
         self.act_type = act_type
         self.conv_after_downsample = conv_after_downsample
-        self.strategy = strategy
         self.data_format = data_format
         self.weight_method = weight_method
         self.conv_bn_act_pattern = conv_bn_act_pattern
         self.resample_layers = []
         self.vars = []
-        self.model_optimizations = model_optimizations
 
     def fuse_features(self, nodes):
         """Fuse features from different resolutions and return a weighted sum.
@@ -136,9 +130,7 @@ class FNode(tf.keras.layers.Layer):
                     self.fpn_num_filters,
                     self.apply_bn_for_resampling,
                     self.conv_after_downsample,
-                    strategy=self.strategy,
                     data_format=self.data_format,
-                    model_optimizations=self.model_optimizations,
                     name=name,
                 )
             )
@@ -158,8 +150,6 @@ class FNode(tf.keras.layers.Layer):
             self.fpn_num_filters,
             self.act_type,
             self.data_format,
-            self.strategy,
-            self.model_optimizations,
             name="op_after_combine{}".format(len(feats_shape)),
         )
         self.built = True
@@ -186,8 +176,6 @@ class OpAfterCombine(tf.keras.layers.Layer):
         fpn_num_filters,
         act_type,
         data_format,
-        strategy,
-        model_optimizations,
         name="op_after_combine",
     ):
         super().__init__(name=name)
@@ -196,7 +184,6 @@ class OpAfterCombine(tf.keras.layers.Layer):
         self.fpn_num_filters = fpn_num_filters
         self.act_type = act_type
         self.data_format = data_format
-        self.strategy = strategy
         if self.separable_conv:
             conv2d_layer = functools.partial(
                 tf.keras.layers.SeparableConv2D, depth_multiplier=1
@@ -212,12 +199,7 @@ class OpAfterCombine(tf.keras.layers.Layer):
             data_format=self.data_format,
             name="conv",
         )
-        if model_optimizations:
-            for method in model_optimizations.keys():
-                self.conv_op = tfmot.get_method(method)(self.conv_op)
-        self.bn = util_keras.build_batch_norm(
-            data_format=self.data_format, strategy=self.strategy, name="bn"
-        )
+        self.bn = utils.build_batch_norm(data_format=self.data_format, name="bn")
 
     def call(self, new_node, training):
         if not self.conv_bn_act_pattern:
@@ -238,11 +220,9 @@ class ResampleFeatureMap(tf.keras.layers.Layer):
         target_num_channels,
         apply_bn=False,
         conv_after_downsample=False,
-        strategy=None,
         data_format=None,
         pooling_type=None,
         upsampling_type=None,
-        model_optimizations=None,
         name="resample_p0",
     ):
         super().__init__(name=name)
@@ -250,7 +230,6 @@ class ResampleFeatureMap(tf.keras.layers.Layer):
         self.data_format = data_format
         self.target_num_channels = target_num_channels
         self.feat_level = feat_level
-        self.strategy = strategy
         self.conv_after_downsample = conv_after_downsample
         self.pooling_type = pooling_type or "max"
         self.upsampling_type = upsampling_type or "nearest"
@@ -262,12 +241,7 @@ class ResampleFeatureMap(tf.keras.layers.Layer):
             data_format=self.data_format,
             name="conv2d",
         )
-        if model_optimizations:
-            for method in model_optimizations.keys():
-                self.conv2d = tfmot.get_method(method)(self.conv2d)
-        self.bn = util_keras.build_batch_norm(
-            data_format=self.data_format, strategy=self.strategy, name="bn"
-        )
+        self.bn = utils.build_batch_norm(data_format=self.data_format, name="bn")
 
     def _pool2d(self, inputs, height, width, target_height, target_width):
         """Pool the inputs to target height and width."""
@@ -353,7 +327,6 @@ class ClassNet(tf.keras.layers.Layer):
         repeats=4,
         separable_conv=True,
         survival_prob=None,
-        strategy=None,
         data_format="channels_last",
         grad_checkpoint=False,
         name="class_net",
@@ -371,7 +344,6 @@ class ClassNet(tf.keras.layers.Layer):
           repeats: number of intermediate layers.
           separable_conv: True to use separable_conv instead of conv2D.
           survival_prob: if a value is set then drop connect will be used.
-          strategy: string to specify training strategy for TPU/GPU/CPU.
           data_format: string of 'channel_first' or 'channels_last'.
           grad_checkpoint: bool, If true, apply grad checkpoint for saving memory.
           name: the name of this layerl.
@@ -388,7 +360,6 @@ class ClassNet(tf.keras.layers.Layer):
         self.separable_conv = separable_conv
         self.survival_prob = survival_prob
         self.act_type = act_type
-        self.strategy = strategy
         self.data_format = data_format
         self.conv_ops = []
         self.bns = []
@@ -423,8 +394,7 @@ class ClassNet(tf.keras.layers.Layer):
             bn_per_level = []
             for level in range(self.min_level, self.max_level + 1):
                 bn_per_level.append(
-                    util_keras.build_batch_norm(
-                        strategy=self.strategy,
+                    utils.build_batch_norm(
                         data_format=self.data_format,
                         name="class-%d-bn-%d" % (i, level),
                     )
@@ -485,7 +455,6 @@ class BoxNet(tf.keras.layers.Layer):
         repeats=4,
         separable_conv=True,
         survival_prob=None,
-        strategy=None,
         data_format="channels_last",
         grad_checkpoint=False,
         name="box_net",
@@ -502,7 +471,6 @@ class BoxNet(tf.keras.layers.Layer):
           repeats: number of "intermediate" layers.
           separable_conv: True to use separable_conv instead of conv2D.
           survival_prob: if a value is set then drop connect will be used.
-          strategy: string to specify training strategy for TPU/GPU/CPU.
           data_format: string of 'channel_first' or 'channels_last'.
           grad_checkpoint: bool, If true, apply grad checkpoint for saving memory.
           name: Name of the layer.
@@ -519,7 +487,6 @@ class BoxNet(tf.keras.layers.Layer):
         self.separable_conv = separable_conv
         self.survival_prob = survival_prob
         self.act_type = act_type
-        self.strategy = strategy
         self.data_format = data_format
         self.grad_checkpoint = grad_checkpoint
 
@@ -561,8 +528,7 @@ class BoxNet(tf.keras.layers.Layer):
             bn_per_level = []
             for level in range(self.min_level, self.max_level + 1):
                 bn_per_level.append(
-                    util_keras.build_batch_norm(
-                        strategy=self.strategy,
+                    utils.build_batch_norm(
                         data_format=self.data_format,
                         name="box-%d-bn-%d" % (i, level),
                     )
@@ -691,10 +657,8 @@ class FPNCell(tf.keras.layers.Layer):
                 config.conv_bn_act_pattern,
                 config.separable_conv,
                 config.act_type,
-                strategy=config.strategy,
                 weight_method=self.fpn_config.weight_method,
                 data_format=config.data_format,
-                model_optimizations=config.model_optimizations,
                 name="fnode%d" % i,
             )
             self.fnodes.append(fnode)
@@ -727,7 +691,6 @@ class EfficientDetNet(tf.keras.Model):
         backbone_name = config.backbone_name
         if "efficientnet" in backbone_name:
             override_params = {
-                "batch_norm": utils.batch_norm_class(config.strategy),
                 "relu_fn": functools.partial(
                     utils.activation_fn, act_type=config.act_type
                 ),
@@ -756,9 +719,7 @@ class EfficientDetNet(tf.keras.Model):
                     target_num_channels=config.fpn_num_filters,
                     apply_bn=config.apply_bn_for_resampling,
                     conv_after_downsample=config.conv_after_downsample,
-                    strategy=config.strategy,
                     data_format=config.data_format,
-                    model_optimizations=config.model_optimizations,
                     name="resample_p%d" % level,
                 )
             )
@@ -777,7 +738,6 @@ class EfficientDetNet(tf.keras.Model):
             repeats=config.box_class_repeats,
             separable_conv=config.separable_conv,
             survival_prob=config.survival_prob,
-            strategy=config.strategy,
             grad_checkpoint=config.grad_checkpoint,
             data_format=config.data_format,
         )
@@ -791,7 +751,6 @@ class EfficientDetNet(tf.keras.Model):
             repeats=config.box_class_repeats,
             separable_conv=config.separable_conv,
             survival_prob=config.survival_prob,
-            strategy=config.strategy,
             grad_checkpoint=config.grad_checkpoint,
             data_format=config.data_format,
         )

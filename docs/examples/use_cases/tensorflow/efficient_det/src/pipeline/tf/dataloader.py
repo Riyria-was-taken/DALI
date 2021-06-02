@@ -289,16 +289,16 @@ class InputReader:
             boxes = data["groundtruth_boxes"]
             classes = data["groundtruth_classes"]
             classes = tf.reshape(tf.cast(classes, dtype=tf.float32), [-1, 1])
+            # classes = tf.reshape(tf.cast(classes, dtype=tf.float32), [-1, 1])
             areas = data["groundtruth_area"]
             is_crowds = data["groundtruth_is_crowd"]
-            classes = tf.reshape(tf.cast(classes, dtype=tf.float32), [-1, 1])
 
             if self._is_training:
                 # Training time preprocessing.
-                if params["skip_crowd_during_training"]:
-                    indices = tf.where(tf.logical_not(data["groundtruth_is_crowd"]))
-                    classes = tf.gather_nd(classes, indices)
-                    boxes = tf.gather_nd(boxes, indices)
+                # if params["skip_crowd_during_training"]:
+                #    indices = tf.where(tf.logical_not(data["groundtruth_is_crowd"]))
+                #    classes = tf.gather_nd(classes, indices)
+                #    boxes = tf.gather_nd(boxes, indices)
 
                 if params.get("grid_mask", None):
                     from . import gridmask  # pylint: disable=g-import-not-at-top
@@ -338,14 +338,6 @@ class InputReader:
             )
             areas = pad_to_fixed_size(areas, -1, [self._max_instances_per_image, 1])
             classes = pad_to_fixed_size(classes, -1, [self._max_instances_per_image, 1])
-            if params["mixed_precision"]:
-                dtype = (
-                    tf.keras.mixed_precision.experimental.global_policy().compute_dtype
-                )
-                image = tf.cast(image, dtype=dtype)
-                box_targets = tf.nest.map_structure(
-                    lambda box_target: tf.cast(box_target, dtype=dtype), box_targets
-                )
             return (
                 image,
                 cls_targets,
@@ -378,7 +370,7 @@ class InputReader:
         if params["data_format"] == "channels_first":
             images = tf.transpose(images, [0, 3, 1, 2])
 
-        data = [images]
+        data = [images, num_positives]
         for level in range(params["min_level"], params["max_level"] + 1):
             cls = cls_targets[level]
             box = box_targets[level]
@@ -387,7 +379,6 @@ class InputReader:
                 box = tf.transpose(box, [0, 3, 1, 2])
             data.append(cls)
             data.append(box)
-        data.append(num_positives)
 
         # Concatenate groundtruth annotations to a tensor.
         # groundtruth_data = tf.concat([boxes, is_crowds, areas, classes], axis=2)
@@ -405,7 +396,7 @@ class InputReader:
         options.experimental_optimization.parallel_batch = True
         return options
 
-    def get_dataset(self, batch_size=64, input_context=None):
+    def get_dataset(self, batch_size=64):
         params = self._params
         input_anchors = anchors.Anchors(
             params["min_level"],
@@ -422,12 +413,9 @@ class InputReader:
         dataset = tf.data.Dataset.list_files(
             self._file_pattern, shuffle=self._is_training, seed=seed
         )
-        if self._is_training:
-            dataset = dataset.repeat()
-        if input_context:
-            dataset = dataset.shard(
-                input_context.num_input_pipelines, input_context.input_pipeline_id
-            )
+
+        dataset = dataset.repeat()
+
         # Prefetch data from files.
         def _prefetch_dataset(filename):
             if params.get("dataset_type", None) == "sstable":
