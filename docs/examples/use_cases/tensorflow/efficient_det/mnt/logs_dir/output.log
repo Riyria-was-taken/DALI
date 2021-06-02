@@ -1,0 +1,82 @@
+python3: can't open file 'src/train.py': [Errno 2] No such file or directory
+2021-05-05 11:34:18.870375: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+Traceback (most recent call last):
+  File "train.py", line 13, in <module>
+    from model import efficientdet_train
+  File "/workspace/yolov4/model/efficientdet_train.py", line 23, in <module>
+    from . import efficientdet_net
+  File "/workspace/yolov4/model/efficientdet_net.py", line 27, in <module>
+    from .model_utils import tfmot
+  File "/workspace/yolov4/model/model_utils/tfmot.py", line 18, in <module>
+    import tensorflow_model_optimization as tfmot
+ModuleNotFoundError: No module named 'tensorflow_model_optimization'
+2021-05-05 11:35:40.094155: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+Traceback (most recent call last):
+  File "train.py", line 13, in <module>
+    from model import efficientdet_train
+  File "/workspace/yolov4/model/efficientdet_train.py", line 23, in <module>
+    from . import efficientdet_net
+  File "/workspace/yolov4/model/efficientdet_net.py", line 27, in <module>
+    from .model_utils import tfmot
+  File "/workspace/yolov4/model/model_utils/tfmot.py", line 18, in <module>
+    import tensorflow_model_optimization as tfmot
+ModuleNotFoundError: No module named 'tensorflow_model_optimization'
+2021-05-05 11:41:56.616344: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+Traceback (most recent call last):
+  File "train.py", line 205, in <module>
+    from argparse_utils import enum_action
+ModuleNotFoundError: No module named 'argparse_utils'
+2021-05-05 11:42:35.959806: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+Traceback (most recent call last):
+  File "train.py", line 205, in <module>
+    from argparse_utils import enum_action
+ModuleNotFoundError: No module named 'argparse_utils'
+2021-05-05 11:43:10.262512: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+usage: train.py [-h] [--initial_epoch INITIAL_EPOCH] [--epochs EPOCHS]
+                --train_file_pattern TRAIN_FILE_PATTERN
+                [--train_batch_size TRAIN_BATCH_SIZE]
+                [--train_steps TRAIN_STEPS]
+                [--eval_file_pattern EVAL_FILE_PATTERN]
+                [--eval_batch_size EVAL_BATCH_SIZE] [--eval_steps EVAL_STEPS]
+                [--eval_freq EVAL_FREQ] [--eval_after_training] --pipeline
+                {syntetic,tensorflow,dali_cpu,dali_gpu}
+                [--multi_gpu [MULTI_GPU [MULTI_GPU ...]]] [--seed SEED]
+                [--hparams HPARAMS] [--model_name MODEL_NAME]
+                [--output OUTPUT] [--start_weights START_WEIGHTS]
+                [--log_dir LOG_DIR] [--ckpt_dir CKPT_DIR]
+train.py: error: the following arguments are required: --train_file_pattern, --pipeline
+2021-05-06 12:54:19.723500: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+usage: train.py [-h] [--initial_epoch INITIAL_EPOCH] [--epochs EPOCHS]
+                --train_file_pattern TRAIN_FILE_PATTERN
+                [--train_batch_size TRAIN_BATCH_SIZE]
+                [--train_steps TRAIN_STEPS]
+                [--eval_file_pattern EVAL_FILE_PATTERN]
+                [--eval_batch_size EVAL_BATCH_SIZE] [--eval_steps EVAL_STEPS]
+                [--eval_freq EVAL_FREQ] [--eval_after_training] --pipeline
+                {syntetic,tensorflow,dali_cpu,dali_gpu}
+                [--multi_gpu [MULTI_GPU [MULTI_GPU ...]]] [--seed SEED]
+                [--hparams HPARAMS] [--model_name MODEL_NAME]
+                [--output OUTPUT] [--start_weights START_WEIGHTS]
+                [--log_dir LOG_DIR] [--ckpt_dir CKPT_DIR]
+train.py: error: the following arguments are required: --train_file_pattern, --pipeline
+python3: can't open file 'database/create_tfrecord_indexes.py': [Errno 2] No such file or directory
+Traceback (most recent call last):
+  File "dataset/create_tfrecord_indexes.py", line 55, in <module>
+    app.run(main)
+  File "/usr/local/lib/python3.8/dist-packages/absl/app.py", line 303, in run
+    _run_main(main, args)
+  File "/usr/local/lib/python3.8/dist-packages/absl/app.py", line 251, in _run_main
+    sys.exit(main(argv))
+  File "dataset/create_tfrecord_indexes.py", line 38, in main
+    raise RuntimeError("Must specify --tfrecord_file_pattern.")
+RuntimeError: Must specify --tfrecord_file_pattern.
+Traceback (most recent call last):
+  File "dataset/create_tfrecord_indexes.py", line 55, in <module>
+    app.run(main)
+  File "/usr/local/lib/python3.8/dist-packages/absl/app.py", line 303, in run
+    _run_main(main, args)
+  File "/usr/local/lib/python3.8/dist-packages/absl/app.py", line 251, in _run_main
+    sys.exit(main(argv))
+  File "dataset/create_tfrecord_indexes.py", line 40, in main
+    raise RuntimeError("Must specify --dali_dir.")
+RuntimeError: Must specify --dali_dir.
