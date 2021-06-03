@@ -15,14 +15,12 @@
 """Keras implementation of efficientdet."""
 import functools
 from absl import logging
-import numpy as np
 import tensorflow as tf
 
 import hparams_config
 import utils
 from .backbone import backbone_factory
 from .backbone import efficientnet_builder
-from .utils import fpn_configs
 from .utils import postprocess
 from .utils import layers
 from .utils import losses
@@ -121,13 +119,6 @@ class EfficientDetNet(tf.keras.Model):
             grad_checkpoint=config.grad_checkpoint,
             data_format=config.data_format,
         )
-
-    def _init_set_name(self, name, zero_based=True):
-        """A hack to allow empty model name for legacy checkpoint compitability."""
-        if name == "":  # pylint: disable=g-explicit-bool-comparison
-            self._name = name
-        else:
-            self._name = super().__init__(name, zero_based)
 
     def _freeze_vars(self):
         if self.config.var_freeze_expr:
