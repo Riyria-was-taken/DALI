@@ -13,13 +13,9 @@
 # limitations under the License.
 # ==============================================================================
 """Common utils."""
-import contextlib
-import os
 from typing import Text, Tuple, Union
-from absl import logging
-import numpy as np
-import tensorflow.compat.v1 as tf
-import tensorflow.compat.v2 as tf2
+import tensorflow as tf
+import tensorflow.compat.v1 as tf1
 from enum import Enum
 from collections import namedtuple
 from tensorflow.python.eager import (
@@ -44,9 +40,7 @@ def dict_to_namedtuple(字典):
     return NamedTuple._make(字典.values())
 
 
-def get_dataset(
-    pipeline, file_pattern, batch_size, is_training, params, strategy=None
-):
+def get_dataset(pipeline, file_pattern, batch_size, is_training, params, strategy=None):
     if pipeline in [PipelineType.tensorflow, PipelineType.syntetic]:
         from pipeline.tf.dataloader import InputReader
 
@@ -66,7 +60,7 @@ def get_dataset(
             )
 
         def dali_dataset_fn(input_context):
-            with tf2.device(f"/gpu:{input_context.input_pipeline_id}"):
+            with tf.device(f"/gpu:{input_context.input_pipeline_id}"):
                 device_id = input_context.input_pipeline_id
                 num_shards = input_context.num_input_pipelines
                 return EfficientDetPipeline(
@@ -78,10 +72,10 @@ def get_dataset(
                     device_id=device_id,
                 ).get_dataset()
 
-        input_options = tf2.distribute.InputOptions(
+        input_options = tf.distribute.InputOptions(
             experimental_place_dataset_on_device=True,
             experimental_prefetch_to_device=False,
-            experimental_replication_mode=tf2.distribute.InputReplicationMode.PER_REPLICA,
+            experimental_replication_mode=tf.distribute.InputReplicationMode.PER_REPLICA,
         )
 
         dataset = strategy.distribute_datasets_from_function(
@@ -93,7 +87,7 @@ def get_dataset(
 
         cpu_only = pipeline == PipelineType.dali_cpu
         device = "/cpu:0" if cpu_only else "/gpu:0"
-        with tf2.device(device):
+        with tf.device(device):
             dataset = EfficientDetPipeline(
                 params,
                 batch_size,
@@ -114,12 +108,12 @@ def srelu_fn(x):
         return tf.where((x > 0.0), x - (1.0 / beta) * safe_log, tf.zeros_like(x))
 
 
-def activation_fn(features: tf.Tensor, act_type: Text):
+def activation_fn(features: tf1.Tensor, act_type: Text):
     """Customized non-linear activation type."""
     if act_type in ("silu", "swish"):
-        return tf.nn.swish(features)
+        return tf.keras.activations.swish(features)
     elif act_type == "swish_native":
-        return features * tf.sigmoid(features)
+        return features * tf.keras.activations.sigmoid(features)
     elif act_type == "hswish":
         return features * tf.nn.relu6(features + 3) / 6
     elif act_type == "relu":
@@ -138,7 +132,7 @@ def cross_replica_mean(t, num_shards_per_group=None):
     """Calculates the average value of input tensor across TPU replicas."""
     num_shards = tpu_function.get_tpu_context().number_of_shards
     if not num_shards_per_group:
-        return tf.tpu.cross_replica_sum(t) / tf.cast(num_shards, t.dtype)
+        return tf1.tpu.cross_replica_sum(t) / tf.cast(num_shards, t.dtype)
 
     group_assignment = None
     if num_shards_per_group > 1:
@@ -152,7 +146,7 @@ def cross_replica_mean(t, num_shards_per_group=None):
             [x for x in range(num_shards) if x // num_shards_per_group == y]
             for y in range(num_groups)
         ]
-    return tf.tpu.cross_replica_sum(t, group_assignment) / tf.cast(
+    return tf1.tpu.cross_replica_sum(t, group_assignment) / tf.cast(
         num_shards_per_group, t.dtype
     )
 
@@ -167,9 +161,9 @@ class BatchNormalization(tf.keras.layers.BatchNormalization):
 
     def call(self, inputs, training=None):
         outputs = super().call(inputs, training)
-        # A temporary hack for tf1 compatibility with keras batch norm.
+        # A temporary hack for tf. compatibility with keras batch norm.
         for u in self.updates:
-            tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, u)
+            tf1.add_to_collection(tf1.GraphKeys.UPDATE_OPS, u)
         return outputs
 
 
@@ -227,18 +221,6 @@ def drop_connect(inputs, is_training, survival_prob):
     # needed at test time.
     output = inputs / survival_prob * binary_tensor
     return output
-
-
-conv_kernel_initializer = tf.initializers.variance_scaling()
-dense_kernel_initializer = tf.initializers.variance_scaling()
-
-
-class Pair(tuple):
-    def __new__(cls, name, value):
-        return super().__new__(cls, (name, value))
-
-    def __init__(self, name, _):  # pylint: disable=super-init-not-called
-        self.name = name
 
 
 def parse_image_size(image_size: Union[Text, int, Tuple[int, int]]):
@@ -308,17 +290,17 @@ def _recompute_grad(f):
      pass of a gradient call.
     """
 
-    @tf.custom_gradient
+    @tf1.custom_gradient
     def inner(*args, **kwargs):
         """Inner function closure for calculating gradients."""
-        current_var_scope = tf.get_variable_scope()
+        current_var_scope = tf1.get_variable_scope()
         with tape_lib.stop_recording():
             result = f(*args, **kwargs)
 
         def grad_wrapper(*wrapper_args, **grad_kwargs):
             """Wrapper function to accomodate lack of kwargs in graph mode decorator."""
 
-            @tf.custom_gradient
+            @tf1.custom_gradient
             def inner_recompute_grad(*dresult):
                 """Nested custom gradient function for computing grads in reverse and forward mode autodiff."""
                 # Gradient calculation for reverse mode autodiff.
@@ -329,7 +311,7 @@ def _recompute_grad(f):
                     if variables is not None:
                         t.watch(variables)
                     with tf.control_dependencies(dresult):
-                        with tf.variable_scope(current_var_scope):
+                        with tf1.variable_scope(current_var_scope):
                             result = f(*id_args, **kwargs)
                 kw_vars = []
                 if variables is not None:

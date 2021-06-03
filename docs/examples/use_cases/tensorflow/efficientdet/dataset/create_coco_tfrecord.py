@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+# This library is mostly based on tensorflow object detection API
+# https://github.com/tensorflow/models/blob/master/research/object_detection/dataset_tools/create_coco_tf_record.py
+
 r"""Convert raw COCO 2017 dataset to TFRecord.
 
 Example usage:

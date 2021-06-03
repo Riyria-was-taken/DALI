@@ -30,12 +30,7 @@ def run_eval(args):
     logging.info(params)
 
     dataset = utils.get_dataset(
-        args.pipeline,
-        args.eval_file_pattern,
-        1,
-        False,
-        params,
-        None
+        args.pipeline, args.eval_file_pattern, 1, False, params, None
     )
 
     model = efficientdet_net.EfficientDetNet(params=params)

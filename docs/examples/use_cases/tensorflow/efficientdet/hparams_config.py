@@ -188,9 +188,7 @@ def default_detection_configs():
     h.input_rand_hflip = True
     h.jitter_min = 0.1
     h.jitter_max = 2.0
-    h.autoaugment_policy = None
     h.grid_mask = False
-    h.sample_image = None
 
     # dataset specific parameters
     h.num_classes = 21  # 1+ actual classes, 0 is reserved for background.
@@ -233,7 +231,6 @@ def default_detection_configs():
 
     # regularization l2 loss.
     h.weight_decay = 4e-5
-    h.loss_scale = None  # set to 2**16 enables dynamic loss scale
 
     # For detection.
     h.box_class_repeats = 3
@@ -262,20 +259,14 @@ def default_detection_configs():
 
     # No stochastic depth in default.
     h.survival_prob = None
-    h.img_summary_steps = None
 
     h.lr_decay_method = "cosine"
-    h.ckpt_var_scope = None  # ckpt variable scope.
-    # If true, skip loading pretrained weights if shape mismatches.
-    h.skip_mismatch = True
 
     h.backbone_name = "efficientnet-b1"
     h.backbone_config = None
     h.var_freeze_expr = None
 
     # A temporary flag to switch between legacy and keras models.
-    h.use_keras_model = True
-    h.dataset_type = None
     h.positives_momentum = None
     h.grad_checkpoint = False
 
