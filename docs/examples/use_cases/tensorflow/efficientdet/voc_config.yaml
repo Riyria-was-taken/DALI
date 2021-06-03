@@ -1,0 +1,3 @@
+var_freeze_expr: '(efficientnet|fpn_cells|resample_p6)'
+label_map: 'voc'
+num_classes: 21
