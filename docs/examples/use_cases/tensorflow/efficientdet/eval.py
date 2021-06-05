@@ -34,7 +34,7 @@ def run_eval(args):
     )
 
     model = efficientdet_net.EfficientDetNet(params=params)
-    model.compile(run_eagerly=True)
+    model.compile()
 
     if args.weights:
         image_size = params["image_size"]

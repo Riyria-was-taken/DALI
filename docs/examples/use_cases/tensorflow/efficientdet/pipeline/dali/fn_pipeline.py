@@ -125,7 +125,9 @@ class EfficientDetPipeline:
 
             bboxes = ops.bbox_to_effdet_format(bboxes, self._image_size)
             bboxes = dali.fn.pad(bboxes, fill_value=-1)
+            bboxes = dali.fn.pad(bboxes, fill_value=-1, shape=(1, 4))
             classes = dali.fn.pad(classes, fill_value=-1)
+            classes = dali.fn.pad(classes, fill_value=-1, shape=(1,))
 
             if self._device == "gpu":
                 images = images.gpu()
