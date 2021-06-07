@@ -27,5 +27,5 @@ os.system(f"""
             --output_file_prefix /tfrec/{args.coco_dataset}_tf && \
         python3 create_tfrecord_indexes.py \
             --tfrecord_file_pattern '/tfrec/{args.coco_dataset}_tf*.tfrecord' \
-            --tfrecord2idx_script '../tfrecord2idx' \
+            --tfrecord2idx_script '../__docker_tfrecord2idx' \
 \"""")
