@@ -15,7 +15,7 @@
 r"""Generate TFRecord index files necessary when using DALI preprocessing.
 
 Example usage:
-    python create_tfrecord_indexes.py  --dali_dir=~/DALI  \
+    python create_tfrecord_indexes.py  --tfrecord2idx_script=~/DALI/tools/tfrecord2idx  \
         --tfrecord_file_pattern=tfrecord/pascal*.tfrecord
 """
 from absl import app
