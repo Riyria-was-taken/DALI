@@ -328,8 +328,6 @@ class InputReader:
             )
 
             # Pad groundtruth data for evaluation.
-            image_scale = input_processor.image_scale_to_original
-            boxes *= image_scale
             is_crowds = tf.cast(is_crowds, dtype=tf.float32)
             boxes = pad_to_fixed_size(boxes, -1, [self._max_instances_per_image, 4])
             is_crowds = pad_to_fixed_size(
@@ -342,10 +340,10 @@ class InputReader:
                 cls_targets,
                 box_targets,
                 num_positives,
-                #image_scale,
+                # image_scale,
                 boxes,
-                #is_crowds,
-                #areas,
+                # is_crowds,
+                # areas,
                 classes,
             )
 
@@ -357,10 +355,10 @@ class InputReader:
         cls_targets,
         box_targets,
         num_positives,
-        #image_scales,
+        # image_scales,
         boxes,
-        #is_crowds,
-        #areas,
+        # is_crowds,
+        # areas,
         classes,
     ):
         params = self._params
@@ -417,11 +415,7 @@ class InputReader:
 
         # Prefetch data from files.
         def _prefetch_dataset(filename):
-            if params.get("dataset_type", None) == "sstable":
-                pass
-            else:
-                dataset = tf.data.TFRecordDataset(filename).prefetch(1)
-            return dataset
+            return tf.data.TFRecordDataset(filename).prefetch(1)
 
         dataset = dataset.interleave(
             _prefetch_dataset, num_parallel_calls=tf.data.experimental.AUTOTUNE
@@ -432,14 +426,10 @@ class InputReader:
 
         # Parse the fetched records to input tensors for model function.
         # pylint: disable=g-long-lambda
-        if params.get("dataset_type", None) == "sstable":
-            map_fn = lambda key, value: self.dataset_parser(
-                value, example_decoder, anchor_labeler
-            )
-        else:
-            map_fn = lambda value: self.dataset_parser(
-                value, example_decoder, anchor_labeler
-            )
+        map_fn = lambda value: self.dataset_parser(
+            value, example_decoder, anchor_labeler
+        )
+
         # pylint: enable=g-long-lambda
         dataset = dataset.map(map_fn, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.prefetch(batch_size)

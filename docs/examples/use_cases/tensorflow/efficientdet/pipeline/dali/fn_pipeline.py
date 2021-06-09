@@ -1,3 +1,17 @@
+# Copyright 2021 Kacper Kluk, Paweł Anikiel, Jagoda Kamińska. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
 import nvidia.dali as dali
 import nvidia.dali.plugin.tf as dali_tf
 import tensorflow as tf
@@ -37,6 +51,7 @@ class EfficientDetPipeline:
             3, 7, 3, [1.0, 2.0, 0.5], 4.0, params["image_size"]
         )
         self._boxes = self._get_boxes()
+        self._max_instances_per_image = params["max_instances_per_image"] or 100
         seed = params["seed"] or -1
 
         self._pipe = dali.pipeline.Pipeline(
@@ -67,48 +82,40 @@ class EfficientDetPipeline:
             )
 
             if self._is_training and self._gridmask:
-                input_shape = dali.fn.shapes(images)
-                w = dali.fn.slice(input_shape, 1, 1, axes=[0])
-                h = dali.fn.slice(input_shape, 0, 1, axes=[0])
+                images = ops.gridmask(self._device, images, widths, heights)
 
-                ratio = 0.4
-                angle = (
-                    dali.fn.random.normal(mean=-1, stddev=1) * 10.0 * (math.pi / 180.0)
-                )
-                l = dali.math.min(0.5 * h, 0.3 * w)
-                r = dali.math.max(0.5 * h, 0.3 * w)
-                tile = dali.fn.random.uniform(range=[0.0, 1.0]) * (r - l) + l
-                tile = dali.fn.cast(tile, dtype=dali.types.INT32)
-                gridmask = dali.fn.grid_mask(
-                    images, ratio=ratio, angle=angle, tile=tile
-                )
+            images, bboxes = ops.normalize_flip(
+                self._device, images, bboxes, 0.5 if self._is_training else 0.0
+            )
 
-                p = dali.fn.random.coin_flip()
-                images = images * (1 - p) + gridmask * p
-
-            if self._is_training:
-                propab = 0.5
-                scaling = [0.1, 2.0]
-            else:
-                propab = 0.0
-                scaling = None
-
-            images, bboxes = ops.normalize_flip(self._device, images, bboxes, propab)
-            images, bboxes, classes = ops.random_crop_resize_2(
-                self._device, images, bboxes, classes, self._image_size, scaling
+            images, bboxes, classes = ops.random_crop_resize(
+                self._device,
+                images,
+                bboxes,
+                classes,
+                widths,
+                heights,
+                self._image_size,
+                [0.1, 2.0] if self._is_training else None,
             )
 
             enc_bboxes, enc_classes = dali.fn.box_encoder(
-                bboxes, classes, anchors=self._boxes, offset=True
+                bboxes, classes, anchors=self._boxes, offset=True, device=self._device
             )
             num_positives = dali.fn.reductions.sum(
-                dali.fn.cast(enc_classes != 0, dtype=dali.types.FLOAT)
+                dali.fn.cast(enc_classes != 0, dtype=dali.types.FLOAT),
+                device=self._device,
             )
             enc_classes -= 1
 
             # convert to tlbr
             enc_bboxes = dali.fn.coord_transform(
-                enc_bboxes, M=[0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0]
+                enc_bboxes,
+                M=[0, 1, 0, 0,
+                   1, 0, 0, 0,
+                   0, 0, 0, 1,
+                   0, 0, 1, 0],
+                device=self._device,
             )
 
             # split into layers by size
@@ -123,18 +130,19 @@ class EfficientDetPipeline:
                 for item in pair
             ]
 
-            bboxes = ops.bbox_to_effdet_format(bboxes, self._image_size)
-            bboxes = dali.fn.pad(bboxes, fill_value=-1)
-            bboxes = dali.fn.pad(bboxes, fill_value=-1, shape=(1, 4))
-            classes = dali.fn.pad(classes, fill_value=-1)
-            classes = dali.fn.pad(classes, fill_value=-1, shape=(1,))
-
-            if self._device == "gpu":
-                images = images.gpu()
-                enc_layers = [item.gpu() for item in enc_layers]
-                num_positives = num_positives.gpu()
-                bboxes = bboxes.gpu()
-                classes = classes.gpu()
+            bboxes = ops.bbox_to_effdet_format(self._device, bboxes, self._image_size)
+            bboxes = dali.fn.pad(
+                bboxes,
+                fill_value=-1,
+                shape=(self._max_instances_per_image, 4),
+                device=self._device,
+            )
+            classes = dali.fn.pad(
+                classes,
+                fill_value=-1,
+                shape=(self._max_instances_per_image,),
+                device=self._device,
+            )
 
             self._pipe.set_outputs(images, num_positives, bboxes, classes, *enc_layers)
 
@@ -155,14 +163,24 @@ class EfficientDetPipeline:
 
             enc_bboxes_layers.append(
                 dali.fn.reshape(
-                    dali.fn.slice(enc_bboxes, (count, 0), (steps, 4), axes=[0, 1]),
-                    [feat_size["height"], feat_size["width"], -1],
+                    dali.fn.slice(
+                        enc_bboxes,
+                        (count, 0),
+                        (steps, 4),
+                        axes=[0, 1],
+                        device=self._device,
+                    ),
+                    shape=[feat_size["height"], feat_size["width"], -1],
+                    device=self._device,
                 )
             )
             enc_classes_layers.append(
                 dali.fn.reshape(
-                    dali.fn.slice(enc_classes, count, steps, axes=[0]),
-                    [feat_size["height"], feat_size["width"], -1],
+                    dali.fn.slice(
+                        enc_classes, count, steps, axes=[0], device=self._device
+                    ),
+                    shape=[feat_size["height"], feat_size["width"], -1],
+                    device=self._device,
                 )
             )
 

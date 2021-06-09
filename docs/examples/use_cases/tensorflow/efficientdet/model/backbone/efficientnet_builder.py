@@ -217,3 +217,26 @@ def get_model_params(model_name, override_params):
 
     logging.info("global_params= %s", global_params)
     return blocks_args, global_params
+
+
+def get_model(model_name, override_params={}):
+    """A helper function to create and return model.
+
+    Args:
+      model_name: string, the predefined model name.
+      override_params: A dictionary of params for overriding. Fields must exist in
+        efficientnet_model.GlobalParams.
+
+    Returns:
+      created model
+
+    Raises:
+      When model_name specified an undefined model, raises NotImplementedError.
+      When override_params has invalid fields, raises ValueError.
+    """
+
+    if model_name.startswith("efficientnet-"):
+        blocks_args, global_params = get_model_params(model_name, override_params)
+        return efficientnet_model.Model(blocks_args, global_params, model_name)
+    else:
+        raise ValueError("Unknown model name {}".format(model_name))
