@@ -19,7 +19,6 @@ import tensorflow as tf
 
 import hparams_config
 import utils
-from .backbone import backbone_factory
 from .backbone import efficientnet_builder
 from .utils import postprocess
 from .utils import layers
@@ -70,7 +69,7 @@ class EfficientDetNet(tf.keras.Model):
                     config.backbone_config.blocks
                 )
             override_params["data_format"] = config.data_format
-            self.backbone = backbone_factory.get_model(
+            self.backbone = efficientnet_builder.get_model(
                 backbone_name, override_params=override_params
             )
 
