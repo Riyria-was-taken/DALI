@@ -13,7 +13,7 @@ parser.add_argument('--logs', default=f"{cwd}/mnt/logs_dir", help="Directory for
 parser.add_argument('--tfrecord_dir', default=f"{cwd}/mnt/tfrecord_dir", help="Output directory for tfrecord files")
 parser.add_argument('--cmd', default="", help="Comand for train.py")
 parser.add_argument('--coco_train_dataset', default="train2017", help="Name of COCO training DS. Must have tfrecords created")
-parser.add_argument('--coco_eval_dataset', default="val2017", help="Name of COCO calidation DS. Must have tfrecords created")
+parser.add_argument('--coco_eval_dataset', default="val2017", help="Name of COCO validation DS. Must have tfrecords created")
 
 args = parser.parse_args()
 

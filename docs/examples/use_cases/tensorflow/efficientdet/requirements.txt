@@ -1,4 +1,2 @@
-tensorflow-model-optimization
 argparse-utils
 absl-py
-pycocotools
