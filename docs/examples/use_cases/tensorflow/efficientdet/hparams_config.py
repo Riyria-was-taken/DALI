@@ -191,10 +191,10 @@ def default_detection_configs():
     h.grid_mask = False
 
     # dataset specific parameters
-    h.num_classes = 21  # 1+ actual classes, 0 is reserved for background.
+    h.num_classes = 91  # 1+ actual classes, 0 is reserved for background.
 
     h.skip_crowd_during_training = True
-    h.label_map = "voc"  # a dict or a string of 'coco', 'voc', 'waymo'.
+    h.label_map = "coco"  # a dict or a string of 'coco', 'voc', 'waymo'.
     h.max_instances_per_image = 100  # Default to 100 for COCO.
 
     # model architecture
