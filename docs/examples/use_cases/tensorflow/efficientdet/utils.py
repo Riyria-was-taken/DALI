@@ -40,7 +40,7 @@ def dict_to_namedtuple(字典):
     return NamedTuple._make(字典.values())
 
 
-def get_dataset(pipeline, file_pattern, batch_size, is_training, params, strategy=None):
+def get_dataset(pipeline, file_pattern, total_batch_size, is_training, params, strategy=None):
     if pipeline in [PipelineType.tensorflow, PipelineType.syntetic]:
         from pipeline.tf.dataloader import InputReader
 
@@ -49,7 +49,7 @@ def get_dataset(pipeline, file_pattern, batch_size, is_training, params, strateg
             file_pattern,
             is_training=is_training,
             use_fake_data=(pipeline == PipelineType.syntetic),
-        ).get_dataset(batch_size)
+        ).get_dataset(total_batch_size)
 
     elif strategy:
         from pipeline.dali.fn_pipeline import EfficientDetPipeline
@@ -65,7 +65,7 @@ def get_dataset(pipeline, file_pattern, batch_size, is_training, params, strateg
                 num_shards = input_context.num_input_pipelines
                 return EfficientDetPipeline(
                     params,
-                    batch_size,
+                    total_batch_size / num_shards,
                     file_pattern,
                     is_training=is_training,
                     num_shards=num_shards,
@@ -90,7 +90,7 @@ def get_dataset(pipeline, file_pattern, batch_size, is_training, params, strateg
         with tf.device(device):
             dataset = EfficientDetPipeline(
                 params,
-                batch_size,
+                total_batch_size,
                 file_pattern,
                 is_training=is_training,
                 cpu_only=cpu_only,

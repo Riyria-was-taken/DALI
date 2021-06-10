@@ -51,22 +51,22 @@ def run_training(args):
         tf.config.experimental.set_memory_growth(gpu_instance, True)
     tf.config.set_soft_device_placement(True)
 
-    use_mirrored_strategy = False
+    num_devices = 1
     multi_gpu = args.multi_gpu
     if multi_gpu is not None and len(physical_devices) > 1:
         devices = [f"GPU:{gpu}" for gpu in multi_gpu] if multi_gpu else None
         strategy = tf.distribute.MirroredStrategy(devices)
-        use_mirrored_strategy = True
+        num_devices = len(devices) if devices else len(physical_devices)
     else:
         strategy = tf.distribute.get_strategy()
 
     train_dataset = utils.get_dataset(
         args.pipeline,
         args.train_file_pattern,
-        args.train_batch_size,
+        args.train_batch_size * num_devices,
         True,
         params,
-        strategy if use_mirrored_strategy else None,
+        strategy if num_devices > 1 else None,
     )
 
     if args.eval_after_training or args.eval_each_epoch:
@@ -77,7 +77,7 @@ def run_training(args):
             1,
             False,
             params,
-            strategy if use_mirrored_strategy else None,
+            None,
         )
 
     with strategy.scope():
