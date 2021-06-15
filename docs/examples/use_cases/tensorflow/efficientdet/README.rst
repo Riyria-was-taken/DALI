@@ -49,7 +49,7 @@ For the evaluation with DALI gpu pipeline::
 Usage
 -----
 
-.. code-block:: bash
+.. code-block::
 
   usage: train.py [-h] [--initial_epoch INITIAL_EPOCH] [--epochs EPOCHS]
                   --train_file_pattern TRAIN_FILE_PATTERN
@@ -97,7 +97,7 @@ Usage
     --log_dir LOG_DIR     directory for tensorboard logs
     --ckpt_dir CKPT_DIR   directory for saving weights each step
 
-.. code-block:: bash
+.. code-block:: 
 
   usage: eval.py [-h] --eval_file_pattern EVAL_FILE_PATTERN
                  [--eval_steps EVAL_STEPS] --pipeline
