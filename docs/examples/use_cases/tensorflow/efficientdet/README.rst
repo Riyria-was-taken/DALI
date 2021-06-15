@@ -11,12 +11,14 @@ To use DALI pipeline for data loading and preprocessing ``--pipeline dali_gpu`` 
 Preparing data files from COCO dataset
 --------------------------------------
 For creating TFrecords files::
+
     python3 ./dataset/create_coco_tfrecord.py \
             --image_dir ./coco/train2017 \
             --object_annotations_file ./coco/annotations/instances_train2017.json \
             --output_file_prefix ./tfrecords/train
 
 For creating TFrecord index files (necessary only for DALI pipelines)::
+
     python3 ./dataset/create_tfrecord_indexes.py \
             --tfrecord_file_pattern './tfrecords/*.tfrecord' \
             --tfrecord2idx_script ../../../../../tools/tfrecord2idx \
