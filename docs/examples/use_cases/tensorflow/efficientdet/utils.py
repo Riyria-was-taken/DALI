@@ -40,7 +40,9 @@ def dict_to_namedtuple(字典):
     return NamedTuple._make(字典.values())
 
 
-def get_dataset(pipeline, file_pattern, total_batch_size, is_training, params, strategy=None):
+def get_dataset(
+    pipeline, file_pattern, total_batch_size, is_training, params, strategy=None
+):
     if pipeline in [PipelineType.tensorflow, PipelineType.syntetic]:
         from pipeline.tf.dataloader import InputReader
 

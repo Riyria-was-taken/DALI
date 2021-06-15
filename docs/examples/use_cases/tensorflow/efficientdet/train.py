@@ -69,7 +69,7 @@ def run_training(args):
         strategy if num_devices > 1 else None,
     )
 
-    if args.eval_after_training or args.eval_each_epoch:
+    if args.eval_after_training or args.eval_during_training:
         eval_file_pattern = args.eval_file_pattern or args.train_file_pattern
         eval_dataset = utils.get_dataset(
             args.pipeline,
@@ -77,7 +77,6 @@ def run_training(args):
             1,
             False,
             params,
-            None,
         )
 
     with strategy.scope():
@@ -130,7 +129,7 @@ def run_training(args):
             steps_per_epoch=args.train_steps,
             initial_epoch=initial_epoch,
             callbacks=callbacks,
-            validation_data=eval_dataset if args.eval_each_epoch else None,
+            validation_data=eval_dataset if args.eval_during_training else None,
             validation_steps=args.eval_steps,
             validation_freq=args.eval_freq,
         )
@@ -147,27 +146,68 @@ if __name__ == "__main__":
     from argparse_utils import enum_action
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--initial_epoch", type=int, default=0)
-    parser.add_argument("--epochs", type=int, default=300)
-    parser.add_argument("--train_file_pattern", required=True)
-    parser.add_argument("--train_batch_size", type=int, default=64)
-    parser.add_argument("--train_steps", type=int, default=2000)
-    parser.add_argument("--eval_file_pattern")
-    parser.add_argument("--eval_steps", type=int, default=5000)
-    parser.add_argument("--eval_freq", type=int, default=1)
-    parser.add_argument("--eval_each_epoch", action="store_true")
-    parser.add_argument("--eval_after_training", action="store_true")
     parser.add_argument(
-        "--pipeline", action=enum_action(utils.PipelineType), required=True
+        "--initial_epoch",
+        type=int,
+        default=0,
+        help="epoch from which to start training",
     )
-    parser.add_argument("--multi_gpu", nargs="*", type=int)
+    parser.add_argument(
+        "--epochs", type=int, default=300, help="epoch on which training should finish"
+    )
+    parser.add_argument(
+        "--train_file_pattern",
+        required=True,
+        help="glob pattern for TFrecord files with training data",
+    )
+    parser.add_argument("--train_batch_size", type=int, default=64)
+    parser.add_argument(
+        "--train_steps", type=int, default=2000, help="number of steps in each epoch"
+    )
+    parser.add_argument(
+        "--eval_file_pattern",
+        help="glob pattern for TFrecord files with evaluation data, "
+        "defaults to TRAIN_FILE_PATTERN if not given",
+    )
+    parser.add_argument(
+        "--eval_steps", type=int, default=5000, help="number of examples to evaluate"
+    )
+    parser.add_argument(
+        "--eval_freq", type=int, default=1, help="during training evalutaion frequency"
+    )
+    parser.add_argument(
+        "--eval_during_training",
+        action="store_true",
+        help="whether to run evaluation every EVAL_FREQ epochs",
+    )
+    parser.add_argument(
+        "--eval_after_training",
+        action="store_true",
+        help="whether to run evaluation after finished training",
+    )
+    parser.add_argument(
+        "--pipeline",
+        action=enum_action(utils.PipelineType),
+        required=True,
+        help="pipeline type",
+    )
+    parser.add_argument(
+        "--multi_gpu",
+        nargs="*",
+        type=int,
+        help="list of GPUs to use, defaults to all visible GPUs",
+    )
     parser.add_argument("--seed", type=int)
-    parser.add_argument("--hparams", default="")
+    parser.add_argument(
+        "--hparams", default="", help="string or filename with parameters"
+    )
     parser.add_argument("--model_name", default="efficientdet-d1")
-    parser.add_argument("--output", default="output.h5")
+    parser.add_argument(
+        "--output", default="output.h5", help="filename for final weights to save"
+    )
     parser.add_argument("--start_weights")
-    parser.add_argument("--log_dir")
-    parser.add_argument("--ckpt_dir")
+    parser.add_argument("--log_dir", help="directory for tensorboard logs")
+    parser.add_argument("--ckpt_dir", help="directory for saving weights each step")
 
     args = parser.parse_args()
     run_training(vars(args))

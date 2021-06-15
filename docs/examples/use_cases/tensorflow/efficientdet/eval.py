@@ -49,14 +49,27 @@ if __name__ == "__main__":
     from argparse_utils import enum_action
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--eval_file_pattern", required=True)
-    parser.add_argument("--eval_steps", type=int, default=5001)
     parser.add_argument(
-        "--pipeline", action=enum_action(utils.PipelineType), required=True
+        "--eval_file_pattern",
+        required=True,
+        help="glob pattern for TFrecord files with evaluation data",
     )
-    parser.add_argument("--weights", default="output.h5")
+    parser.add_argument(
+        "--eval_steps", type=int, default=5000, help="number of examples to evaluate"
+    )
+    parser.add_argument(
+        "--pipeline",
+        action=enum_action(utils.PipelineType),
+        required=True,
+        help="pipeline type",
+    )
+    parser.add_argument(
+        "--weights", default="output.h5", help="file with model weights"
+    )
     parser.add_argument("--model_name", default="efficientdet-d1")
-    parser.add_argument("--hparams", default="")
+    parser.add_argument(
+        "--hparams", default="", help="string or filename with parameters"
+    )
 
     args = parser.parse_args()
     run_eval(vars(args))
